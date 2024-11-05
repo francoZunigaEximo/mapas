@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pozos Petroleros en OSM</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+    <script>
+        // Inicializa el mapa
+        const map = L.map('map').setView([-45.842568974359644, -67.87821257895725], 16); // Centrado en Argentina
+
+        // Añadir capa de mapa base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const overpassQuery = `
+        [out:json];
+        node["man_made"="petroleum_well"](around:10000, -45.842568974359644, -67.87821257895725); // Cambia las coordenadas y el radio según sea necesario
+        out body;
+        `;
+        // Consulta a Overpass API
+        const overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+
+        fetch(overpassUrl)
+            .then(response => response.json())
+            .then(data => {
+                // Procesar los nodos
+                data.elements.forEach(element => {
+                    if (element.type === 'node') {
+                        const lat = element.lat;
+                        const lon = element.lon;
+
+                        // Añadir un marcador para cada pozo petrolero
+                        L.marker([lat, lon])
+                            .addTo(map)
+                            .bindPopup(element.tags.field_name+" - "+element.tags.name+" - "+element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
+                    }
+                });
+            })
+            .catch(error => console.error('Error al cargar los pozos petroleros:', error));
+    </script>
+</body>
+</html>
