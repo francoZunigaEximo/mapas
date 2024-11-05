@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
+
 <body>
     <div id="map" style="height: 500px;"></div>
     <script>
@@ -39,11 +41,58 @@
                         // Añadir un marcador para cada pozo petrolero
                         L.marker([lat, lon])
                             .addTo(map)
-                            .bindPopup(element.tags.field_name+" - "+element.tags.name+" - "+element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
+                            .bindPopup(element.tags.field_name + " - " + element.tags.name + " - " + element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
                     }
                 });
             })
             .catch(error => console.error('Error al cargar los pozos petroleros:', error));
+
+        // Define la consulta y URL de Overpass para pipelines
+        const overpassQueryPipeline = `
+    [out:json];
+    way["man_made"="pipeline"](around:100000, -45.842568974359644, -67.87821257895725); 
+    out body;
+    >;  // Para obtener los nodos asociados a las líneas
+    out skel qt;
+`;
+        const overpassUrlPipeline = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQueryPipeline);
+
+        // Función para obtener datos de Overpass y dibujar los pipelines en el mapa
+        fetch(overpassUrlPipeline)
+            .then(response => response.json())
+            .then(data => {
+                let ways = {};
+                let nodes = {};
+
+                // Procesar datos para obtener nodos y caminos
+                data.elements.forEach(element => {
+                    if (element.type === 'node') {
+                        nodes[element.id] = [element.lat, element.lon];
+                    } else if (element.type === 'way') {
+                        ways[element.id] = element.nodes;
+                    }
+                });
+
+                // Dibujar los caminos (pipelines) en el mapa
+                for (let wayId in ways) {
+                    let wayNodes = ways[wayId].map(nodeId => nodes[nodeId]);
+
+                    // Verificar que todos los nodos de la línea tengan coordenadas
+                    if (wayNodes.every(coord => coord)) {
+                        // Crear una polilínea y agregarla al mapa
+                        L.polyline(wayNodes, {
+                            color: 'red', // Color de la línea
+                            weight: 3,    // Ancho de la línea
+                            opacity: 0.8
+                        }).addTo(map);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Error al consultar Overpass API:", error);
+            });
+
     </script>
 </body>
+
 </html>
