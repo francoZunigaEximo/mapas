@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.1.0/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.1.0/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.1.0/dist/MarkerCluster.Default.css" />
+</head>
+
+<body>
+    <div id="map" style="height: 500px;"></div>
+    <script>
+        iniciarMapa();
+        function iniciarMapa() {
+            var map = L.map('map').setView([51.505, -0.09], 13);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            const editCheckbox = document.getElementById('editMode');
+            map.locate({ setView: true, maxZoom: 16 });
+
+            //evento para cuando se posicione sobre un lugar
+            function onLocationFound(e) {
+                var radius = e.accuracy;
+
+                L.marker(e.latlng).addTo(map)
+                    .bindPopup("You are within " + radius + " meters from this point").openPopup();
+
+                L.circle(e.latlng, radius).addTo(map);
+            }
+
+            map.on('locationfound', onLocationFound);
+
+            cargarDatosPozo(map);
+
+        }
+
+        async function cargarDatosPozo(map) {
+            let url = 'http://datos.energia.gob.ar/api/3/action/datastore_search?resource_id=cbfa4d79-ffb3-4096-bab5-eb0dde9a8385';
+            const options = { method: 'GET' };
+
+            try {
+                let markers = L.markerClusterGroup();
+                let limite;
+                let offset = 100;
+                let limit = 100;
+
+                do {
+                    let nuevaurl = url + `&limit=${limit}&offset=${offset}`
+                    let response = await fetch(nuevaurl, options);
+                    let data = await response.json();
+                    data.result.records.forEach(p => {
+                        markers.addLayer(L.marker([p.coordenaday, p.coordenadax]));
+                    });
+                    map.addLayer(markers);
+                    limite = data.result.total;
+                    offset += 100;
+                } while (offset <= limite);
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+
+</html>

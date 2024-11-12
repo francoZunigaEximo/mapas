@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="height: 500px;"></div>
+    <script>
+        const map = L.map('map').setView([-45.842568974359644, -67.87821257895725], 16); // Centrado en Argentina
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map)
+        /*
+        L.tileLayer.wms('https://sig.energia.gob.ar/wmsenergia', {
+            layers: 'pozos_noconvencionales_shale',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'Ministerio de Energía Argentina'
+        }).addTo(map);
+        
+        L.tileLayer.wms('https://sig.energia.gob.ar/wmsenergia', {
+            layers: 'pozos_noconvencionales_tight',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'Ministerio de Energía Argentina'
+        }).addTo(map); 
+        L.tileLayer.wms('https://sig.energia.gob.ar/wmsenergia', {
+            layers: 'pozos_convencionales',
+            format: 'image/png',
+            transparent: true,
+            attribution: 'Ministerio de Energía Argentina'
+        }).addTo(map);  
+        */
+        L.tileLayer.wms('https://sig.energia.gob.ar/wmsenergia', {
+            layers: 'pozos_noinformados',
+            format: 'image/png',
+            transparent: true,
+            outputFormat:'application/json',
+            attribution: 'Ministerio de Energía Argentina'
+        }).addTo(map);  
+    </script>
+</body>
+</html>

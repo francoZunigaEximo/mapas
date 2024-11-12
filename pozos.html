@@ -10,6 +10,7 @@
 </head>
 
 <body>
+    <button type="button" onclick="cargarPuntosPozos()">Punto Pozos</button>
     <div id="map" style="height: 500px;"></div>
     <script>
         // Inicializa el mapa
@@ -21,40 +22,91 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        const overpassQuery = `
-        [out:json];
-        node["man_made"="petroleum_well"](around:10000, -45.842568974359644, -67.87821257895725); // Cambia las coordenadas y el radio según sea necesario
-        out body;
-        `;
-        // Consulta a Overpass API
-        const overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+        
 
-        fetch(overpassUrl)
-            .then(response => response.json())
-            .then(data => {
-                // Procesar los nodos
-                data.elements.forEach(element => {
-                    if (element.type === 'node') {
-                        const lat = element.lat;
-                        const lon = element.lon;
+        let puntosPozos = [];
 
-                        // Añadir un marcador para cada pozo petrolero
-                        L.marker([lat, lon])
-                            .addTo(map)
-                            .bindPopup(element.tags.field_name + " - " + element.tags.name + " - " + element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
-                    }
-                });
-            })
-            .catch(error => console.error('Error al cargar los pozos petroleros:', error));
+        function cargarPuntosPozos(){
+            //seleccionamos un punto del mapa y cargamos los pozos de ese punto
+            map.on("click", function(e){
+                //removerPuntos();
+                L.circle(e.latlng, {
+                    radius: 1000,
+                    opacity: 0.2
+                }).addTo(map);
+
+                let overpassQuery = `
+                    [out:json];
+                    node["man_made"="petroleum_well"](around:1000, ${e.latlng.lat}, ${e.latlng.lng}); // Cambia las coordenadas y el radio según sea necesario
+                    out body;
+                    `;
+                 let overpassQueryGas = `
+                    [out:json];
+                    node["man_made"="gasfield"](around:1000, ${e.latlng.lat}, ${e.latlng.lng}); // Cambia las coordenadas y el radio según sea necesario
+                    out body;
+                    `;
+                // Consulta a Overpass API
+
+                
+
+                let overpassUrl = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQuery);
+                let overpassGasUrl = 'https://overpass-api.de/api/interpreter?data='+encodeURIComponent(overpassQueryGas);
+
+                fetch(overpassUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Procesar los nodos
+                    data.elements.forEach(element => {
+                        if (element.type === 'node') {
+                            const lat = element.lat;
+                            const lon = element.lon;
+
+                            // Añadir un marcador para cada pozo petrolero
+                            let punto = L.marker([lat, lon])
+                                .addTo(map)
+                                .bindPopup(element.tags.field_name + " - " + element.tags.name + " - " + element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
+                            puntosPozos.push(punto);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error al cargar los pozos petroleros:', error));
+                
+                fetch(overpassGasUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Procesar los nodos
+                    data.elements.forEach(element => {
+                        if (element.type === 'node') {
+                            const lat = element.lat;
+                            const lon = element.lon;
+
+                            // Añadir un marcador para cada pozo petrolero
+                            let punto = L.marker([lat, lon])
+                                .addTo(map)
+                                .bindPopup("gas: "+element.tags.field_name + " - " + element.tags.name + " - " + element.tags.operator); // Personaliza el contenido del popup según los datos disponibles
+                            puntosPozos.push(punto);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error al cargar los pozos petroleros:', error));
+            });
+            
+        }
+
+
+        function removerPuntos(){
+            puntosPozos.forEach( p => p.remove());
+            puntosPozos = [];
+        }
 
         // Define la consulta y URL de Overpass para pipelines
         const overpassQueryPipeline = `
-    [out:json];
-    way["man_made"="pipeline"](around:100000, -45.842568974359644, -67.87821257895725); 
-    out body;
-    >;  // Para obtener los nodos asociados a las líneas
-    out skel qt;
-`;
+            [out:json];
+            way["man_made"="pipeline"](around:1000000, -45.842568974359644, -67.87821257895725); 
+            out body;
+            >;  // Para obtener los nodos asociados a las líneas
+            out skel qt;
+        `;
         const overpassUrlPipeline = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(overpassQueryPipeline);
 
         // Función para obtener datos de Overpass y dibujar los pipelines en el mapa
